@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار OCR التفاعلي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .question-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .question-card.active {
+            border-color: #0d95f7;
+            box-shadow: 0 0 20px rgba(13, 149, 247, 0.2);
+        }
+        
+        .option-button {
+            transition: all 0.2s ease;
+        }
+        
+        .option-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .option-button.selected {
+            background-color: #0d95f7;
+            color: white;
+            border-color: #0d95f7;
+        }
+        
+        .correct-answer {
+            background-color: #10b981 !important;
+            color: white !important;
+            border-color: #10b981 !important;
+        }
+        
+        .wrong-answer {
+            background-color: #ef4444 !important;
+            color: white !important;
+            border-color: #ef4444 !important;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-slate-100 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b-4 border-blue-500">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-xl">📝</span>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-800">اختبار OCR التفاعلي</h1>
+                        <p class="text-slate-600">اختبار شامل حول تقنية التعرف الضوئي على الحروف</p>
+                    </div>
+                </div>
+                <div class="text-left">
+                    <div class="text-sm text-slate-600">إجمالي الأسئلة</div>
+                    <div class="text-2xl font-bold text-blue-600" id="totalQuestions">17</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Quiz Screen -->
+        <div id="quizScreen">
+            <!-- Progress Bar -->
+            <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-slate-600">السؤال <span id="currentQuestion">1</span> من <span id="totalQuestionsDisplay">17</span></span>
+                    <span class="text-slate-600" id="progressPercent">6%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div class="progress-bar bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full" id="progressBar" style="width: 6%"></div>
+                </div>
+            </div>
+
+            <!-- Question Container -->
+            <div id="questionContainer" class="bg-white rounded-2xl shadow-xl p-8 question-card active fade-in">
+                <!-- Question content will be inserted here -->
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between mt-8">
+                <button id="prevBtn" onclick="previousQuestion()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    السؤال السابق
+                </button>
+                <button id="nextBtn" onclick="nextQuestion()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    السؤال التالي
+                </button>
+                <button id="submitBtn" onclick="submitQuiz()" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors hidden">
+                    إنهاء الاختبار
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div id="resultsScreen" class="hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-8 text-center mb-8">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl">🎉</span>
+                </div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-4">تم إنهاء الاختبار!</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+                    <div class="bg-blue-50 rounded-xl p-6">
+                        <div class="text-3xl font-bold text-blue-600" id="finalScore">0</div>
+                        <div class="text-slate-600">النتيجة النهائية</div>
+                    </div>
+                    <div class="bg-green-50 rounded-xl p-6">
+                        <div class="text-3xl font-bold text-green-600" id="correctAnswers">0</div>
+                        <div class="text-slate-600">إجابات صحيحة</div>
+                    </div>
+                    <div class="bg-red-50 rounded-xl p-6">
+                        <div class="text-3xl font-bold text-red-600" id="wrongAnswers">0</div>
+                        <div class="text-slate-600">إجابات خاطئة</div>
+                    </div>
+                </div>
+                <button onclick="showReview()" class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold mt-8 transition-colors">
+                    مراجعة الإجابات 📚
+                </button>
+            </div>
+        </div>
+
+        <!-- Review Screen -->
+        <div id="reviewScreen" class="hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8">
+                <h2 class="text-2xl font-bold text-slate-800 mb-6 text-center">مراجعة الإجابات</h2>
+                <div id="reviewContainer">
+                    <!-- Review content will be inserted here -->
+                </div>
+                <div class="text-center mt-8">
+                    <button onclick="location.reload()" class="bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+                        إنهاء المراجعة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quiz data
+        const quizData = [
+            {
+                type: 'multiple',
+                question: 'أي من التالي يعتبر من تطبيقات الـ OCR؟',
+                options: ['التعرف على الوجوه', 'قراءة أرقام لوحات السيارات 🚗', 'التعرف على الإيماءات', 'تحديد موقع GPS'],
+                correct: 1,
+                explanation: 'OCR (التعرف الضوئي على الحروف) يُستخدم لقراءة النصوص من الصور، مثل أرقام لوحات السيارات.',
+                tips: 'تذكر أن OCR يتعامل مع النصوص والأرقام المكتوبة، وليس مع التعرف على الوجوه أو الإيماءات.'
+            },
+            {
+                type: 'truefalse',
+                question: 'OCR يمكنه تحويل الكتب التاريخية المصورة إلى ملفات PDF قابلة للتحرير.',
+                correct: true,
+                explanation: 'نعم، OCR يمكنه مسح الكتب المصورة وتحويل النصوص فيها إلى نصوص قابلة للتحرير والبحث.',
+                tips: 'هذا من أهم تطبيقات OCR في الحفاظ على التراث والمخطوطات القديمة.'
+            },
+            {
+                type: 'truefalse',
+                question: 'شكل لوحة السيارة ثابت تقريبًا، مما يسهل عملية التعرف على أرقامها.',
+                correct: true,
+                explanation: 'صحيح، لوحات السيارات لها شكل وحجم موحد في كل دولة، مما يجعل برمجة OCR للتعرف عليها أسهل.',
+                tips: 'الثبات في التصميم يساعد الخوارزميات على التعرف بدقة أكبر.'
+            },
+            {
+                type: 'multiple',
+                question: 'في البريد، يساعد OCR في:',
+                options: ['اكتشاف الطوابع', 'قراءة الأكواد البريدية والعناوين', 'مسح الصور الملونة', 'تحديد لغة النص'],
+                correct: 1,
+                explanation: 'OCR في البريد يُستخدم أساساً لقراءة العناوين والأكواد البريدية لتوجيه الرسائل تلقائياً.',
+                tips: 'فكر في كيفية عمل مكاتب البريد الحديثة - تحتاج لقراءة العناوين بسرعة ودقة.'
+            },
+            {
+                type: 'ordering',
+                question: 'رتب الخطوات التالية لاستخدام OCR في PictoBlox:',
+                options: [
+                    'التقاط صورة بالكاميرا',
+                    'التعرف على النص المكتوب بخط اليد أو المطبوع',
+                    'التحقق من النتيجة باستخدام الشروط',
+                    'تنفيذ الإجراء المناسب بناءً على النتيجة'
+                ],
+                correct: [0, 1, 2, 3],
+                explanation: 'الترتيب الصحيح: أولاً التقاط الصورة، ثم التعرف على النص، ثم التحقق من النتيجة، وأخيراً تنفيذ الإجراء.',
+                tips: 'تذكر أن العملية تبدأ بالحصول على البيانات (الصورة) ثم معالجتها ثم اتخاذ القرار.'
+            },
+            {
+                type: 'truefalse',
+                question: 'النصوص في OCR حساسة لحالة الأحرف، فـ "John" و "JOHN" قد تُعتبر مختلفة.',
+                correct: true,
+                explanation: 'صحيح، OCR يميز بين الأحرف الكبيرة والصغيرة، لذلك يجب الانتباه لهذا عند المقارنة.',
+                tips: 'عند البرمجة، يمكن استخدام دوال تحويل النص لحالة موحدة لتجنب هذه المشكلة.'
+            },
+            {
+                type: 'multiple',
+                question: 'في مشروع "ساعي البريد" في PictoBlox، ما الذي يحدد وجهة الهدية؟',
+                options: ['لون الغلاف', 'النص المكتوب على الهدية', 'مكان المرسل', 'عدد الإطارات'],
+                correct: 1,
+                explanation: 'في مشروع ساعي البريد، يقرأ OCR النص المكتوب على الهدية لتحديد المستلم والوجهة.',
+                tips: 'هذا مثال عملي على كيفية استخدام OCR في التطبيقات الواقعية.'
+            },
+            {
+                type: 'truefalse',
+                question: 'يمكن برمجة PictoBlox ليتعرف على النص من الصورة بعد وقت محدد بالثواني.',
+                correct: true,
+                explanation: 'نعم، يمكن استخدام كتل التوقيت في PictoBlox لتأخير عملية التعرف على النص.',
+                tips: 'هذا مفيد عندما نريد إعطاء وقت للمستخدم لوضع النص أمام الكاميرا.'
+            },
+            {
+                type: 'multiple',
+                question: 'ما نوع الكتلة المستخدمة لمقارنة النص في مشروع "ساعي البريد"؟',
+                options: ['كتلة (>)', 'كتلة (=)', 'كتلة (+)', 'كتلة (و)'],
+                correct: 1,
+                explanation: 'كتلة المساواة (=) تُستخدم لمقارنة النص المقروء بالأسماء المحددة مسبقاً.',
+                tips: 'كتلة المساواة هي الأنسب لمقارنة النصوص والتحقق من التطابق.'
+            },
+            {
+                type: 'truefalse',
+                question: 'إذا لم يطابق النص أي اسم من الأسماء المحددة، تعرض الهدية رسالة "حاول مرة أخرى!".',
+                correct: true,
+                explanation: 'صحيح، هذا جزء من معالجة الأخطاء في البرنامج عندما لا يتم التعرف على النص بشكل صحيح.',
+                tips: 'معالجة الحالات الاستثنائية مهمة جداً في البرمجة لتحسين تجربة المستخدم.'
+            },
+            {
+                type: 'multiple',
+                question: 'أي من التالي ليس من تطبيقات OCR المذكورة في الدرس؟',
+                options: ['التعرف على لوحات السيارات', 'تحويل الكتب التاريخية', 'اكتشاف العواطف من الوجوه', 'قراءة العناوين البريدية'],
+                correct: 2,
+                explanation: 'اكتشاف العواطف من الوجوه يتطلب تقنيات الذكاء الاصطناعي للتعرف على الوجوه، وليس OCR.',
+                tips: 'OCR مخصص للنصوص والأرقام فقط، أما التعرف على الوجوه فهو مجال مختلف.'
+            },
+            {
+                type: 'truefalse',
+                question: 'يُسمح فقط برفع ملفات بصيغة SB3 كمهمة بعد الدرس الخامس.',
+                correct: true,
+                explanation: 'صحيح، ملفات SB3 هي صيغة مشاريع Scratch/PictoBlox المطلوبة للمهام.',
+                tips: 'تأكد من حفظ مشروعك بالصيغة الصحيحة قبل الرفع.'
+            },
+            {
+                type: 'multiple',
+                question: 'أي من التالي يؤثر على دقة التعرف على النصوص في OCR؟',
+                options: ['جودة الصورة', 'لون النص', 'إضاءة المكان', 'جميع ما سبق'],
+                correct: 3,
+                explanation: 'جميع العوامل المذكورة تؤثر على دقة OCR: جودة الصورة، التباين بين النص والخلفية، والإضاءة.',
+                tips: 'للحصول على أفضل نتائج OCR، استخدم صوراً واضحة بإضاءة جيدة وتباين عالي.'
+            },
+            {
+                type: 'truefalse',
+                question: 'في PictoBlox، يمكن التعرف على النص المكتوب بخط اليد أو النص المطبوع باستخدام نفس الكتل.',
+                correct: true,
+                explanation: 'صحيح، PictoBlox يوفر كتل OCR موحدة يمكنها التعامل مع النصوص المطبوعة والمكتوبة بخط اليد.',
+                tips: 'رغم أن الكتل موحدة، إلا أن دقة التعرف قد تختلف بين النص المطبوع والمكتوب بخط اليد.'
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let userAnswers = [];
+        let quizStarted = false;
+
+        function startQuiz() {
+            quizStarted = true;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const question = quizData[currentQuestionIndex];
+            const container = document.getElementById('questionContainer');
+            
+            // Update progress
+            const progress = ((currentQuestionIndex + 1) / quizData.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
+            document.getElementById('progressPercent').textContent = Math.round(progress) + '%';
+            
+            let questionHTML = `
+                <div class="mb-8">
+                    <div class="flex items-center mb-4">
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold ml-3">
+                            ${getQuestionTypeLabel(question.type)}
+                        </span>
+                        <span class="text-slate-500 text-sm">السؤال ${currentQuestionIndex + 1}</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-6">${question.question}</h3>
+                </div>
+            `;
+
+            if (question.type === 'multiple') {
+                questionHTML += `
+                    <div class="mb-6">
+                        <p class="text-slate-600 mb-4 bg-blue-50 p-3 rounded-lg">
+                            💡 <strong>كيفية الحل:</strong> اقرأ السؤال بعناية واختر الإجابة الصحيحة الوحيدة من بين الخيارات.
+                        </p>
+                    </div>
+                    <div class="space-y-3">
+                `;
+                question.options.forEach((option, index) => {
+                    const isSelected = userAnswers[currentQuestionIndex] === index;
+                    questionHTML += `
+                        <button onclick="selectOption(${index})" 
+                                class="option-button w-full text-right p-4 border-2 rounded-lg transition-all ${isSelected ? 'selected' : 'border-gray-200 hover:border-blue-300'}">
+                            <span class="font-semibold ml-3">${String.fromCharCode(65 + index)})</span>
+                            ${option}
+                        </button>
+                    `;
+                });
+                questionHTML += '</div>';
+            }
+            
+            else if (question.type === 'truefalse') {
+                questionHTML += `
+                    <div class="mb-6">
+                        <p class="text-slate-600 mb-4 bg-blue-50 p-3 rounded-lg">
+                            💡 <strong>كيفية الحل:</strong> اقرأ العبارة بعناية وحدد ما إذا كانت صحيحة أم خاطئة.
+                        </p>
+                    </div>
+                    <div class="flex gap-4 justify-center">
+                `;
+                const trueSelected = userAnswers[currentQuestionIndex] === true;
+                const falseSelected = userAnswers[currentQuestionIndex] === false;
+                
+                questionHTML += `
+                    <button onclick="selectTrueFalse(true)" 
+                            class="option-button px-8 py-4 border-2 rounded-lg font-semibold transition-all ${trueSelected ? 'selected' : 'border-gray-200 hover:border-green-300'}">
+                        ✅ صح
+                    </button>
+                    <button onclick="selectTrueFalse(false)" 
+                            class="option-button px-8 py-4 border-2 rounded-lg font-semibold transition-all ${falseSelected ? 'selected' : 'border-gray-200 hover:border-red-300'}">
+                        ❌ خطأ
+                    </button>
+                `;
+                questionHTML += '</div>';
+            }
+            
+            else if (question.type === 'ordering') {
+                questionHTML += `
+                    <div class="mb-6">
+                        <p class="text-slate-600 mb-4 bg-blue-50 p-3 rounded-lg">
+                            💡 <strong>كيفية الحل:</strong> رتب الخطوات حسب التسلسل الصحيح من القوائم المنسدلة. فكر في المنطق والتسلسل الطبيعي للعملية.
+                        </p>
+                    </div>
+                    <div class="space-y-4">
+                `;
+                
+                question.options.forEach((option, index) => {
+                    const selectedOrder = userAnswers[currentQuestionIndex] ? userAnswers[currentQuestionIndex][index] : '';
+                    questionHTML += `
+                        <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                            <select onchange="updateOrdering(${index}, this.value)" class="border-2 border-gray-300 rounded-lg px-3 py-2 font-semibold">
+                                <option value="">اختر الترتيب</option>
+                                <option value="1" ${selectedOrder === 1 ? 'selected' : ''}>الأول</option>
+                                <option value="2" ${selectedOrder === 2 ? 'selected' : ''}>الثاني</option>
+                                <option value="3" ${selectedOrder === 3 ? 'selected' : ''}>الثالث</option>
+                                <option value="4" ${selectedOrder === 4 ? 'selected' : ''}>الرابع</option>
+                            </select>
+                            <span class="flex-1">${option}</span>
+                        </div>
+                    `;
+                });
+                questionHTML += '</div>';
+            }
+
+            container.innerHTML = questionHTML;
+            
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+            
+            if (currentQuestionIndex === quizData.length - 1) {
+                document.getElementById('nextBtn').classList.add('hidden');
+                document.getElementById('submitBtn').classList.remove('hidden');
+            } else {
+                document.getElementById('nextBtn').classList.remove('hidden');
+                document.getElementById('submitBtn').classList.add('hidden');
+            }
+        }
+
+        function getQuestionTypeLabel(type) {
+            const labels = {
+                'multiple': 'اختيار من متعدد',
+                'truefalse': 'صح أو خطأ',
+                'ordering': 'ترتيب'
+            };
+            return labels[type] || type;
+        }
+
+        function selectOption(index) {
+            userAnswers[currentQuestionIndex] = index;
+            showQuestion();
+        }
+
+        function selectTrueFalse(value) {
+            userAnswers[currentQuestionIndex] = value;
+            showQuestion();
+        }
+
+        function updateOrdering(optionIndex, order) {
+            if (!userAnswers[currentQuestionIndex]) {
+                userAnswers[currentQuestionIndex] = [];
+            }
+            userAnswers[currentQuestionIndex][optionIndex] = parseInt(order);
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < quizData.length - 1) {
+                currentQuestionIndex++;
+                showQuestion();
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                showQuestion();
+            }
+        }
+
+        function submitQuiz() {
+            // Calculate results
+            let correctCount = 0;
+            
+            quizData.forEach((question, index) => {
+                const userAnswer = userAnswers[index];
+                let isCorrect = false;
+                
+                if (question.type === 'multiple' || question.type === 'truefalse') {
+                    isCorrect = userAnswer === question.correct;
+                } else if (question.type === 'ordering') {
+                    if (userAnswer && userAnswer.length === question.correct.length) {
+                        isCorrect = question.correct.every((correctOrder, i) => userAnswer[i] === correctOrder + 1);
+                    }
+                }
+                
+                if (isCorrect) correctCount++;
+            });
+            
+            const percentage = Math.round((correctCount / quizData.length) * 100);
+            
+            // Show results
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+            
+            document.getElementById('finalScore').textContent = percentage + '%';
+            document.getElementById('correctAnswers').textContent = correctCount;
+            document.getElementById('wrongAnswers').textContent = quizData.length - correctCount;
+        }
+
+        function showReview() {
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('reviewScreen').classList.remove('hidden');
+            
+            const reviewContainer = document.getElementById('reviewContainer');
+            let reviewHTML = '';
+            
+            quizData.forEach((question, index) => {
+                const userAnswer = userAnswers[index];
+                let isCorrect = false;
+                let userAnswerText = 'لم يتم الإجابة';
+                let correctAnswerText = '';
+                
+                if (question.type === 'multiple') {
+                    isCorrect = userAnswer === question.correct;
+                    userAnswerText = userAnswer !== undefined ? question.options[userAnswer] : 'لم يتم الإجابة';
+                    correctAnswerText = question.options[question.correct];
+                } else if (question.type === 'truefalse') {
+                    isCorrect = userAnswer === question.correct;
+                    userAnswerText = userAnswer !== undefined ? (userAnswer ? 'صح' : 'خطأ') : 'لم يتم الإجابة';
+                    correctAnswerText = question.correct ? 'صح' : 'خطأ';
+                } else if (question.type === 'ordering') {
+                    if (userAnswer && userAnswer.length === question.correct.length) {
+                        isCorrect = question.correct.every((correctOrder, i) => userAnswer[i] === correctOrder + 1);
+                    }
+                    userAnswerText = userAnswer ? 
+                        question.options.map((opt, i) => `${userAnswer[i] || '؟'}- ${opt}`).join('<br>') :
+                        'لم يتم الإجابة';
+                    correctAnswerText = question.options.map((opt, i) => `${i + 1}- ${opt}`).join('<br>');
+                }
+                
+                reviewHTML += `
+                    <div class="border-2 ${isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'} rounded-xl p-6 mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="font-bold text-lg">السؤال ${index + 1}</h4>
+                            <span class="text-2xl">${isCorrect ? '✅' : '❌'}</span>
+                        </div>
+                        
+                        <p class="font-semibold mb-4">${question.question}</p>
+                        
+                        <div class="grid md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-white p-4 rounded-lg">
+                                <h5 class="font-semibold text-blue-600 mb-2">إجابتك:</h5>
+                                <p class="${isCorrect ? 'text-green-600' : 'text-red-600'}">${userAnswerText}</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-lg">
+                                <h5 class="font-semibold text-green-600 mb-2">الإجابة الصحيحة:</h5>
+                                <p class="text-green-600">${correctAnswerText}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-blue-50 p-4 rounded-lg mb-3">
+                            <h5 class="font-semibold text-blue-800 mb-2">📚 الشرح:</h5>
+                            <p class="text-blue-700">${question.explanation}</p>
+                        </div>
+                        
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <h5 class="font-semibold text-yellow-800 mb-2">💡 نصيحة:</h5>
+                            <p class="text-yellow-700">${question.tips}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            reviewContainer.innerHTML = reviewHTML;
+        }
+
+        // Initialize
+        window.onload = function() {
+            startQuiz();
+        };
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96f4a171a3441d43',t:'MTc1NTIxODMyMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
