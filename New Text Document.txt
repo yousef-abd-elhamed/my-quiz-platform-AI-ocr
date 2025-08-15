@@ -1,7 +1,7 @@
-echo "# my-quiz-platform-AI-ocr" >> README.md
+echo "# my-quiz-platform-Ai-ocr-" >> README.md
 git init
 git add .
 git commit -m "first commit"
 git branch -M main
-git remote add origin https://github.com/yousef-abd-elhamed/my-quiz-platform-AI-ocr.git
+git remote add origin https://github.com/yousef-abd-elhamed/my-quiz-platform-Ai-ocr-.git
 git push -u origin main
